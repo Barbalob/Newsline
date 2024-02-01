@@ -1,28 +1,26 @@
-import { FC } from 'react';
+import { FC, memo } from 'react';
 import {NavLink, Outlet} from 'react-router-dom'
 import './Menu.scss'
 
-interface dictInterface  {
-    [key: string]: string[]
-}    
-const colorDict:dictInterface = {
-    'Dark':['#212121', '#E8A236'],
-    'Ligth':['#DCEAF3', '#1436CA'],
-    'Blue':['#2BA9EC', '#0F2496']
-}
+
+interface ColorType {
+    name: string,
+    mainColor: string,
+    secondColor:string,
+    textColor:string
+  }
 
 interface StyleInterface{
     'backgroundColor': string,
     'color': string
 }
 
-const Menu:FC<{color:string}> = ({color}) => {
-
+const Menu:FC<{colorStyle:ColorType}> = memo(({colorStyle}) => {
     const style:StyleInterface = {
-        'backgroundColor': colorDict[color][0],
-        'color': colorDict[color][1],     
+        'backgroundColor': colorStyle.mainColor,
+        'color': colorStyle.textColor,     
     }
-    console.log(style);
+
     return (
         <>
             <ul style={style} className='menu'>
@@ -32,6 +30,6 @@ const Menu:FC<{color:string}> = ({color}) => {
             <Outlet  />
         </>
     );
-};
+});
 
 export default Menu;

@@ -2,44 +2,61 @@ import { useEffect, useState } from 'react'
 import {createBrowserRouter,createRoutesFromElements,Route, RouterProvider} from 'react-router-dom'
 import Menu from './Components/Menu/Menu'
 import News from './Components/News/News';
-import axios from 'axios';
 import ColorThem from './Components/ColorTheme/ColorThem';
+import { getPosts, getStyleColors } from './api/request';
+import Spinner from './Components/Spinner/Spinner';
 
-type PhotoType = {
-  thumbnailUrl:string,
+
+type NewsType = {
   title:string,
-  url:string,
-  albumId:number,
+  content:string,
   id:number,
-} 
+}
 
-function App({colorTheme='ligth'}) {
-  const [photos, setPhotos] = useState<Array<PhotoType>>([])
+type ColorType = {
+  name: string,
+  mainColor: string,
+  secondColor:string,
+  textColor:string
+}
+
+const defaultStyleColor = {
+  name: 'Default',
+  mainColor: 'rgb(206, 240, 227)',
+  secondColor:'rgb(255, 255, 255)',
+  textColor:'rgb(10, 10, 10)'
+}
+
+function App({colorTheme='light'}) {
+  const [news, setNews] = useState<Array<NewsType>>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [loadingStyle, setLoadingStyle] = useState(true)
   const [fetching, setFetching] = useState(true)
   const [color, setColor]= useState(colorTheme)
-  // const [totalCountPage, setTotalCountPage] = useState(0)
-
-  console.log('Color', color);
+  const [colorStyle, setColorStyle] =useState<ColorType>(defaultStyleColor)
 
   async function handleRefresh() {
-    console.log('Start refresh!');
-    axios.get(`https://jsonplaceholder.typicode.com/photos?_limit=10&_page=1`)
+    await getPosts(1)
       .then(response=>{
-        setPhotos(response.data)
+        setError(false)
+        setNews(response.data)
         setCurrentPage(2)
-      }).finally(()=>{
+      })
+      .catch((err)=>{
+        setError(true)
+      })
+      .finally(()=>{
         setFetching(false)
       })
   }
 
   async function OnClickUpdate () {
-    console.log('Click');
     setLoading(true)
-    axios.get(`https://jsonplaceholder.typicode.com/photos?_limit=10&_page=1`)
+    getPosts(1)
       .then(response=>{
-        setPhotos(response.data)
+        setNews(response.data)
         setCurrentPage(2)
       }).finally(()=>{
         setFetching(false)
@@ -49,47 +66,72 @@ function App({colorTheme='ligth'}) {
   
   useEffect(()=>{
     if (fetching){
-      console.log('Effect');
-      axios.get(`https://jsonplaceholder.typicode.com/photos?_limit=10&_page=${currentPage}`)
-        .then(response=>{
-          setPhotos([...photos,...response.data])
-          setCurrentPage(page=>page+1)
-          // setTotalCountPage(response.headers['x-total-count'])
-        }).finally(()=>{
-          setFetching(false)
-          setLoading(false)
-        })
+      getPosts(currentPage)
+      .then(response=>{
+        setNews([...news,...response.data])
+        setCurrentPage(page=>page+1)
+      })
+      .catch((err)=>{
+        setError(true)
+      })
+      .finally(()=>{
+        setFetching(false)
+        setLoading(false)
+      })
     }
   },[fetching])
 
+  useEffect(
+    ()=>{
+      setLoadingStyle(true)
+      getStyleColors(color)
+      .then(response=>{
+        setColorStyle(response.data)
+      }).catch((err)=>{
+        setColor('default')
+        setColorStyle(defaultStyleColor)
+        alert(`${err}\nНе удалось загрузить Стили. Будут применены cтандартные стили`)
+      })
+      .finally(()=>{setLoadingStyle(false)})
+    },[])
+
   const changeColorThem = (color:string) => {
-    setColor(color)
+    setLoading(true)
+    getStyleColors(color.toLowerCase()).then(response=>{
+      setColorStyle(response.data)
+      setColor(color)
+    }).catch((err)=>{
+      alert(`${err}\nНе удалось загрузить cтили`)
+    })
+    .finally(()=>{setLoading(false)})
     localStorage.setItem('colorTheme', JSON.stringify(color));
   }
-
 
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path='/' element={
-        <Menu color={color}/>
+        <Menu colorStyle={colorStyle}/>
       }>
         <Route path='' element={
           <News 
-            photos={photos} 
+            news={news} 
             handleRefresh={handleRefresh}
             loading={loading}
             fetching={fetching}
             setFetching={setFetching}
-            onClickHandler={OnClickUpdate}/>
+            onClickHandler={OnClickUpdate}
+            error={error}
+            colorStyle={colorStyle}
+            />
           }/>
-        <Route path='theme' element={<ColorThem color={color} setColor={changeColorThem}/>}/>
+        <Route path='theme' element={<ColorThem loading={loading} color={color} setColor={changeColorThem}/>}/>
       </Route>
     )
   )
 
   return (
     <>
-      <RouterProvider router={router} />
+      {loadingStyle ? <Spinner/> : <RouterProvider router={router} />}   
     </>
   )
 }

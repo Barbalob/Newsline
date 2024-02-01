@@ -1,6 +1,9 @@
 import { FC } from 'react';
+import Spinner from '../Spinner/Spinner';
 
-const ColorThem:FC<{color:string, setColor:(color: string) => void}> = ({color, setColor}) => {
+const ColorList = ['light', 'dark','blue']
+
+const ColorThem:FC<{color:string, setColor:(color: string) => void, loading:boolean}> = ({color, setColor, loading}) => {
     const styleButton = {
         padding: '20px 30px',
         borderRadius: 10,
@@ -8,9 +11,12 @@ const ColorThem:FC<{color:string, setColor:(color: string) => void}> = ({color, 
     }
     return (
         <div style={{display:'flex', gap:20, flexDirection:'column', alignItems: 'center', padding: 30}}>
-            <button style={styleButton} disabled={color==='Dark'} onClick={()=>{setColor('Dark')}}>Dark</button>
-            <button style={styleButton} disabled={color==='Ligth'} onClick={()=>{setColor('Ligth')}}>Ligth</button>
-            <button style={styleButton} disabled={color==='Blue'} onClick={()=>{setColor('Blue')}}>Blue</button>
+            {loading ? <Spinner /> : ''}
+            {ColorList.map((btnColor) => {
+                return (
+                <button key={btnColor}  style={styleButton} disabled={color===btnColor} onClick={()=>{setColor(btnColor)}}>{btnColor}</button>
+                )
+            })}
         </div>
     );
 };
